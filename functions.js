@@ -1,6 +1,7 @@
 class Users
 {
     cons = [];
+    num = 1;
     broadcast(msg, origem)
     {
         this.cons.forEach(function(con){
@@ -17,10 +18,8 @@ class Users
             }
         });
     }
-    systemAnswer(array)
+    systemAnswer(msg, dest)
     {
-        var msg = array[0];
-        var dest = array[1];
         this.cons.forEach(con => {
             if(con.nome == dest){
                 con.write(msg);
@@ -39,6 +38,7 @@ class Users
     }
     attachUser(con)
     {
+        con.nome = "unknown"+this.num++;
         this.cons.push(con);
     }
     detachUser(con)
@@ -56,10 +56,9 @@ class Users
             con.nome = nome;
             this.broadcast(msg);
         }
-        else {
-            var sys = ["This name is in use", con.nome];
-            this.systemAnswer(sys);
-        }
+        else
+            this.systemAnswer("This name is in use", con.nome);
+        
         return msg;
     }
     desc(con, comando)
@@ -74,15 +73,13 @@ class Users
     {
         var user = comando.slice(8).trim();
         var rem = con.nome;
-        var sys;
+        var desc;
         this.cons.forEach(function(con){
-            if(con.nome == user){
-                var desc = user+"`s description is "+con.desc;
-                sys = [desc, rem];
-            }
+            if(con.nome == user)
+                desc = user+"`s description is "+con.desc;
         });
-        if(sys)
-            this.systemAnswer(sys);
+        if(desc && rem)
+            this.systemAnswer(desc, rem);
         var msg = rem+" saw "+user+" descriptions";
         return msg;
     }

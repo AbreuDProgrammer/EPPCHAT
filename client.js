@@ -1,9 +1,9 @@
 var net = require('net');
 var myCon = require('./anexo/console');
-var config = require('./anexo/config.json');
+var config = require('./anexo/config');
 const options = {
-    host: config.ip,
-    port : config.port
+    host: config.IP,
+    port : config.PORT
 }
 var client = net.connect(options);
 const readline = require('readline');

@@ -1,6 +1,6 @@
 var net = require('net');
 var myCon = require('./anexo/console');
-var config = require('./anexo/config.json');
+var config = require('./anexo/config');
 var Users = require('./functions');
 var Clients = new Users();
 
@@ -14,6 +14,8 @@ var server = net.createServer(function(con){
             var func = cmdArray[0].slice(1);
             if(typeof Clients[func] === 'function')
                 var msgServer = Clients[func](con, comando);
+            else
+                Clients.systemAnswer("Command does not exists ", con.nome);
             if(typeof msgServer === 'string')
                 myCon.log(msgServer);
         }
@@ -25,12 +27,13 @@ var server = net.createServer(function(con){
     });
     con.on('end', function(){
         Clients.broadcast(con.nome+' saiu ', con);
+        myCon.log(con.nome+' saiu');
         Clients.detachUser(con);
     });
-    con.on('error', e => myCon.log("eror: "+e.toString()));
+    con.on('error', e => myCon.log(e.toString()));
 });
 server.listen({
-    port: config.port,
+    port: config.PORT,
     readableAll: true,
     writableAll: true
 });
