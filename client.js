@@ -1,12 +1,12 @@
 // Require de todas as bibliotecas utilizadas
 var net = require('net');
 var myCon = require('./anexo/console');
-var config = require('./anexo/config');
+const CONFIG = require('./anexo/config');
 
 // Configurações da conecção
 const options = {
-    host: config.IP,
-    port : config.PORT
+    host: CONFIG.IP,
+    port : CONFIG.PORT
 }
 
 // Criação do user
@@ -20,7 +20,7 @@ const rl = readline.createInterface({
 
 // Quando a conecção é estabelecida
 client.on('connect', () => {
-    myCon.log("Conected!");
+    myCon.log('Conected!');
     timer();
 });
 
@@ -31,7 +31,7 @@ client.on('data', msg => {
 
 // Quando a sessão é encerrada
 client.on('end', () => {
-    myCon.log("sair");
+    myCon.log('Left');
     process.exit();
 });
 
@@ -61,7 +61,7 @@ let interval;
 function timer(){
     interval = setTimeout(function(){
         client.end();
-    }, 1000 * config.TIMEOUT);
+    }, 1000 * CONFIG.TIMEOUT);
 }
 
 // Para resetar o timer

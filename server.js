@@ -1,7 +1,7 @@
 // Require de todas as bibliotecas utilizadas
 var net = require('net');
 var myCon = require('./anexo/console');
-var config = require('./anexo/config');
+const CONFIG = require('./anexo/config');
 var Users = require('./functions');
 
 // Cria o objeto com as funcionalidades do usuário
@@ -14,7 +14,7 @@ var server = net.createServer(function(con){
     Clients.attachUser(con);
 
     con.on('data', function(msg){
-        
+
         // Prepara a mensagem
         var message = msg.toString().trim();
 
@@ -30,8 +30,10 @@ var server = net.createServer(function(con){
 
             // Verifica se a funcionalidade existe
             if(typeof Clients[func] === 'function')
+                // Executa a funcionalidade
                 var msgServer = Clients[func](con, args);
             else
+                // Caso a funcionalidade não exista
                 Clients.systemAnswer("Command does not exists ", con.nome);
 
             // Verifica se a funcionalidade responde com alguma mensagem para o servidor
@@ -42,15 +44,23 @@ var server = net.createServer(function(con){
         // Se não for uma funcionalidade é uma mensagem comum
         else if(comando.type === 'message')
         {
-            myCon.log(con.nome+" wrote "+comando.message);
-            Clients.broadcast(con.nome+': '+comando.message, con);
+            myCon.log(con.nome+" wrote "+comando.args.message);
+            var send = {
+                sender: con,
+                message: con.nome+': '+comando.message
+            }
+            Clients.broadcast(send);
         }
     });
 
     // Mensagem para quando o user terminar a sessão
     con.on('end', function(){
-        Clients.broadcast(con.nome+' just left', con);
-        myCon.log(con.nome+' just left');
+        var send = {
+            sender: con,
+            message: con.nome+" just left"
+        }
+        Clients.broadcast(send);
+        myCon.log(con.nome+" just left");
 
         // Retirar user do objeto
         Clients.detachUser(con);
@@ -63,7 +73,7 @@ var server = net.createServer(function(con){
 
 // Configs do servidor
 server.listen({
-    port: config.PORT,
+    port: CONFIG.PORT,
     readableAll: true,
     writableAll: true
 });

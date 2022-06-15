@@ -4,12 +4,12 @@ class Users
     userCounter = 1; // Contador de usuários para novos
 
     // Mostra a mensagem a todos do chat
-    broadcast(msg, origem)
+    broadcast(args)
     {
         this.cons.forEach(function(con){
-            if(con === origem)
+            if(con === args.sender)
                 return;
-            con.write(msg);
+            con.write(args.message);
         });
     }
 
@@ -49,7 +49,7 @@ class Users
     // Adiciona o user a lista
     attachUser(con)
     {
-        con.nome = "unknown"+this.num++;
+        con.nome = "unknown"+this.userCounter++;
         this.cons.push(con);
     }
 
@@ -112,7 +112,11 @@ class Users
             // prepara a mensagem para o chat e troca o nome
             var msg = con.nome+" changed his name to "+nome;
             con.nome = nome;
-            this.broadcast(msg);
+            var send = {
+                sender: con,
+                message: msg
+            }
+            this.broadcast(send);
 
             // e envia a mensagem para o servidor
             return msg;
@@ -140,7 +144,11 @@ class Users
         // Troca a descrição e mostra ao chat que trocou
         var msg = con.nome+" changed his description";
         con.desc = desc;
-        this.broadcast(msg);
+        var send = {
+            sender: con,
+            message: msg
+        }
+        this.broadcast(send);
 
         // Retorna a mensagem para o servidor
         return msg;
@@ -195,7 +203,7 @@ class Users
         this.private(privateArray);
 
         // Retorna com a mensagem para o servidor
-        var msg = con.nome+" sent a private message to "+user+" saying: "+message;
+        var msg = con.nome+" sent a private message to "+userReci+" saying: "+message;
         return msg;
     }
 }
