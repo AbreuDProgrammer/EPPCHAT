@@ -1,9 +1,5 @@
 class Users
 {
-    // Declara a biblioteca de grupos
-    Group = require('./Groups');
-
-    groups = []; // Lista de grupos
     cons = []; // Lista de usuários
     userCounter = 1; // Contador de usuários para novos
 
@@ -117,6 +113,7 @@ class Users
     // Funcionalidade para altrar o nome
     name(con, args)
     {
+        // Define o nome sem sobrenomes
         var nome = args[0];
 
         // Verifica se o nome já está em uso
@@ -177,26 +174,50 @@ class Users
         var user = args[0];
         var reci = con.nome;
 
+        // Objeto para envio da descrição
+        var sysArray = null;
+
         // Procura entre os usuários pela descrição
         this.cons.forEach(function(con){
             if(con.nome == user){
 
-                // Mostra a descrição do user
-                var desc = user+"`s description is "+con.desc;
-                var sysArray = {
+                // Salva a descrição do user
+                var desc = user+"`s description is: "+con.desc;
+                sysArray = {
                     message: desc,
                     recipient: reci
                 }
-                this.systemAnswer(sysArray);
 
                 // Retorna se achar
                 return;
             }
         });
 
-        // Prepara e envia a mensagem para o servidor
-        var msg = reci+" saw "+user+" descriptions";
-        return msg;
+        // Descrição não encontrada
+        if(sysArray === null){
+
+            // Prepara o objeto do systemAnswer
+            sysArray = {
+                message: 'User not found',
+                recipient: reci
+            }
+
+            // Mostra a mensagem de user não encontrado
+            this.systemAnswer(sysArray);
+
+            // Termina a ação sem mostrar ao histórico
+            return;
+        }
+        // Descrição encontrada
+        else{
+
+            // Mostra a descrição do user
+            this.systemAnswer(sysArray);
+
+            // Prepara e envia a mensagem para o servidor
+            var msg = reci+' saw '+user+' descriptions';
+            return msg;
+        }
     }
 
     // Funcionalidade para enviar uma mensagem privada
@@ -245,24 +266,6 @@ class Users
 
         // Retorna para o servidor
         return con.nome+" saw the list of users online.";
-    }
-
-    createGroup(con, args)
-    {
-        // Define o nome do grupo
-        var name = args[0];
-
-        // Define o número máximo de users
-        var maxMembers = args[1];
-
-        // Cria um novo grupo
-        var Group = new this.Group(con, name, maxMembers);
-
-        // Adiciona o grupo na lista de grupos
-        this.groups.push(Group);
-
-        // Retorna para o servidor
-        return con.nome+' created a new Group: '+name;
     }
 }
 module.exports = Users;

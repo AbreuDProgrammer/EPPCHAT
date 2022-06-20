@@ -1,4 +1,4 @@
-const IP = "192.168.20.47";
+const IP = "192.168.0.174";
 const PORT = 1617;
 const TIMEOUT = 120;
 module.exports.IP = IP;
