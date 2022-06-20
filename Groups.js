@@ -1,4 +1,4 @@
-class Groups{
+class Group{
     name;
     #admin;
     members = [];
