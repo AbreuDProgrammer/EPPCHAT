@@ -1,4 +1,4 @@
-const IP = "192.168.0.174";
+const IP = "192.168.20.47";
 const PORT = 1617;
 const TIMEOUT = 600;
 const INITIAL_LENGTH = 5;

@@ -6,6 +6,9 @@ var Users = require('./User');
 // Cria o objeto com as funcionalidades do usuário
 var Clients = new Users();
 
+// Notificação que o servidor está ativo
+Clients.historic('Server online!');
+
 // Cria a ligação com o servidor
 var server = net.createServer(function(con){
 
@@ -35,10 +38,11 @@ var server = net.createServer(function(con){
             else
             {
                 var msg = {
+                    type: 'notification',
                     message: "Command does not exists ",
                     recipient: con
                 }
-                Clients.systemAnswer(msg);
+                Clients.private(msg);
             }
 
             // Verifica se a funcionalidade responde com alguma mensagem para o servidor
@@ -62,6 +66,7 @@ var server = net.createServer(function(con){
     // Mensagem para quando o user terminar a sessão
     con.on('end', function(){
         var send = {
+            type: 'notification',
             sender: con,
             message: con.name+" just left"
         }
@@ -73,7 +78,9 @@ var server = net.createServer(function(con){
     });
 
     // Mensagens de erros
-    con.on('error', e => Clients.historic(e.toString()));
+    con.on('error', e => {
+        Clients.historic(e.toString())
+    });
 
 });
 

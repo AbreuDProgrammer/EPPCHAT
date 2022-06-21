@@ -56,6 +56,7 @@ function showArrEl (key){
 
 // Variavel para escolher o intervalo
 let interval;
+let message;
 
 // Timer para sair
 function timer()

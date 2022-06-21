@@ -30,14 +30,10 @@ class Group
 
         // Se for uma notificação
         if(args.type === 'notification')
-        {
             msg = args.message;
-        }
         // Se for uma mensagem comum
         else if(args.type === 'message')
-        {
-            msg = hours+":"+min+' '+init+' '+args.sender.name+': '+args.message;
-        }
+            msg = hours+":"+min+' ['+init+'] '+args.sender.name+': '+args.message;
 
         // Envia a mensagem a todos os membros menos o remetente
         this.members.forEach(function(member){
@@ -87,6 +83,21 @@ class Group
                 return true;
         }
         return false;
+    }
+
+    // Lista todos os membros do grupo
+    listMembers()
+    {
+        // Mensagem de preparação para a lista
+        var online = "Users online: ";
+
+        // Percorre os users contidos na classe e adiciona na string
+        this.members.forEach(element => {
+            online += '\n'+element.name;
+        });
+
+        // Retorna a mensagem
+        return online;
     }
 }
 module.exports = Group;
