@@ -53,8 +53,14 @@ class Users
     {
         // Recebe a hora e insere na mensagem
         var date = new Date;
+        
         var hours = date.getHours();
+        if(hours < 10)
+            hours = '0'+hours;
+
         var min = date.getMinutes();
+        if(min < 10)
+            min = '0'+min;
 
         // Retorna a mensagem com o horário
         return hours+":"+min+' '+message;
@@ -570,6 +576,20 @@ class Users
             var msg = {
                 type: 'notification',
                 message: 'This user does not exists',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
+
+        // Se o user estiver no grupo
+        if(group.isMember(user))
+        {
+            var msg = {
+                type: 'notification',
+                message: 'This user is in that group already',
                 recipient: con
             }
             this.private(msg);
