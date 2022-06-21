@@ -58,14 +58,20 @@ function showArrEl (key){
 let interval;
 
 // Timer para sair
-function timer(){
+function timer()
+{
     interval = setTimeout(function(){
         client.end();
     }, 1000 * CONFIG.TIMEOUT);
+
+    message = setTimeout(function(){
+        myCon.log('You will be logged out in 10 seconds for inactivity, write something to reset');
+    }, 1000 * (CONFIG.TIMEOUT - 10));
 }
 
 // Para resetar o timer
 function resetTimer(){
     clearTimeout(interval);
+    clearTimeout(message);
     timer();
 }

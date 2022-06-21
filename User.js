@@ -1,6 +1,9 @@
 // Classe responsável pelos grupos
 var Group = require('./Group');
 
+// Configurações
+var config = require('./anexo/config');
+
 class Users
 {
     groups = [] // Lista de grupos
@@ -364,6 +367,19 @@ class Users
 
         // Define a sigla do grupo
         var initials = args[1];
+
+        // Verifica se a sigle tem mais que 0 letras e menos ou igual a 5
+        if(initials.length == 0 || initials.length > config.INITIAL_LENGTH){
+            var msg = {
+                type: 'system',
+                message: 'The initial must be between 1 and 5 letters',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
 
         // Verifica se a sigla já não está em uso
         var initialUsing = this.verifyGroupExists(initials);
