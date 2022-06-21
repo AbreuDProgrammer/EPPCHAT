@@ -31,9 +31,15 @@ var server = net.createServer(function(con){
             if(typeof Clients[func] === 'function')
                 // Executa a funcionalidade
                 var msgServer = Clients[func](con, args);
+            // Caso a funcionalidade não exista
             else
-                // Caso a funcionalidade não exista
-                Clients.systemAnswer("Command does not exists ", con.nome);
+            {
+                var msg = {
+                    message: "Command does not exists ",
+                    recipient: con
+                }
+                Clients.systemAnswer(msg);
+            }
 
             // Verifica se a funcionalidade responde com alguma mensagem para o servidor
             if(typeof msgServer === 'string')
@@ -43,10 +49,11 @@ var server = net.createServer(function(con){
         // Se não for uma funcionalidade é uma mensagem comum
         else if(comando.type === 'message')
         {
-            Clients.historic(con.nome+" wrote "+comando.args.message);
+            Clients.historic(con.name+" wrote "+comando.args.message);
             var send = {
+                type: 'message',
                 sender: con,
-                message: con.nome+': '+comando.args.message
+                message: comando.args.message
             }
             Clients.broadcast(send);
         }
@@ -56,10 +63,10 @@ var server = net.createServer(function(con){
     con.on('end', function(){
         var send = {
             sender: con,
-            message: con.nome+" just left"
+            message: con.name+" just left"
         }
         Clients.broadcast(send);
-        Clients.historic(con.nome+" just left");
+        Clients.historic(con.name+" just left");
 
         // Retirar user do objeto
         Clients.detachUser(con);

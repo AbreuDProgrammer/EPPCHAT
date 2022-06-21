@@ -1,6 +1,6 @@
 const IP = "192.168.0.174";
 const PORT = 1617;
-const TIMEOUT = 120;
+const TIMEOUT = 600;
 module.exports.IP = IP;
 module.exports.PORT = PORT;
 module.exports.TIMEOUT = TIMEOUT;

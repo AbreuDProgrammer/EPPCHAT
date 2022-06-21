@@ -1,44 +1,65 @@
+// Classe responsável pelos grupos
+var Group = require('./Group');
+
 class Users
 {
+    groups = [] // Lista de grupos
     cons = []; // Lista de usuários
     userCounter = 1; // Contador de usuários para novos
 
     // Mostra a mensagem a todos do chat
     broadcast(args)
     {
-        // Recebe a hora e insere na mensagem
-        var date = new Date;
-        var hours = date.getHours();
-        var min = date.getMinutes();
+        // Cria a mensagem
+        var msg;
+
+        // Se for uma notificação
+        if(args.type === 'notification')
+        {
+            msg = args.message;
+        }
+        // Se for uma mensagem comum
+        else if(args.type === 'message')
+        {
+            msg = this.setTime(args.sender.name+': '+args.message);
+        }
 
         // Envia a mensagem a todos menos o remetente
         this.cons.forEach(function(con){
             if(con === args.sender)
                 return;
-            con.write(hours+":"+min+' '+args.message);
+            con.write(msg);
         });
+
+        return;
     }
 
     // Envia a mensagem privada
     private(args)
     {
-        this.cons.forEach(con => {
-            if(con.nome == args.recipient){
-                con.write(args.sender+" wrote just for you: "+args.message);
-                return;
-            }
-        });
+        // Envia a mensagem para o usuário dependendo se for do sistema ou mensagem privada
+        if(args.type === 'system')
+        {
+            var msg = args.message;
+            args.recipient.write(msg);
+        }
+        else if(args.type === 'private'){
+            var msg = this.setTime(args.sender.name+" wrote just for you: "+args.message);
+            args.recipient.write(msg);
+        }
     }
 
-    // Resposta do servidor para um usuário
-    systemAnswer(args)
+    // Insere o horário na mensagem
+    setTime(message)
     {
-        this.cons.forEach(con => {
-            if(con.nome == args.recipient){
-                con.write(args.message);
-            }
-        });
-    }
+        // Recebe a hora e insere na mensagem
+        var date = new Date;
+        var hours = date.getHours();
+        var min = date.getMinutes();
+
+        // Retorna a mensagem com o horário
+        return hours+":"+min+' '+message;
+    } 
 
     // Guarda o histórico no servidor
     historic(msg)
@@ -47,21 +68,46 @@ class Users
     }
 
     // Verifica se o nome está em uso
-    verNomeRep(nome)
+    vernameRep(name)
     {
-        var repete = false;
+        for(var value of this.cons)
+        {
+            if(name == value.name)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Verifica se o user existe
+    userExists(user)
+    {
+        for(var con of this.cons)
+        {
+            if(con === user)
+                return true
+        }
+        return false;
+    }
+
+    // Retorna o user procurando pelo name
+    selectUserByName(name)
+    {
+        var user = null;
         this.cons.forEach(function(con){
-            if(nome == con.nome){
-                repete = true;
+            if(name == con.name){
+                user = con;
+                return;
             }
         });
-        return repete;
+        return user;
     }
 
     // Adiciona o user a lista
     attachUser(con)
     {
-        con.nome = "unknown"+this.userCounter++;
+        con.name = "unknown"+this.userCounter++;
         this.cons.push(con);
     }
 
@@ -110,41 +156,55 @@ class Users
         return answer;
     }
 
-    // Funcionalidade para altrar o nome
+    // Funcionalidade para altrar o name
     name(con, args)
     {
         // Define o nome sem sobrenomes
-        var nome = args[0];
+        var name = args[0];
 
         // Verifica se o nome já está em uso
-        var rep = this.verNomeRep(nome);
+        var rep = this.vernameRep(name);
 
         // Caso não esteja em uso
-        if(rep === false) {
+        if(rep === false) 
+        {
+            // Prepara a mensagem para o chat e troca o name
+            var msg = con.name+" changed his name to "+name;
 
-            // prepara a mensagem para o chat e troca o nome
-            var msg = con.nome+" changed his name to "+nome;
-            con.nome = nome;
+            // Altera o nome
+            con.name = name;
+
+            // Prepara o objeto
             var send = {
+                type: 'notification',
                 sender: con,
                 message: msg
             }
             this.broadcast(send);
+
+            // Avisa que a mudaça foi feita
+            var message = {
+                type: 'system',
+                message: 'You changed your name',
+                recipient: con
+            }
+            this.private(message);
 
             // E envia a mensagem para o servidor
             return msg;
         }
         // Caso esteja em uso
         else{
-            // Prepara e envia a mensagem direta para o usuário que tentou mudar de nome
+            // Prepara e envia a mensagem direta para o usuário que tentou mudar de name
             var SysArray = {
+                type: 'system',
                 message: 'This name is in use',
-                recipient: con.nome
+                recipient: con
             }
-            this.systemAnswer(SysArray);
+            this.private(SysArray);
         }
 
-        // Não retorna comentario para o servidor se o nome não for trocado
+        // Não retorna comentario para o servidor se o name não for trocado
         return;
     }
 
@@ -155,13 +215,26 @@ class Users
         var desc = args.join(' ');
 
         // Troca a descrição e mostra ao chat que trocou
-        var msg = con.nome+" changed his description";
+        var msg = con.name+" changed his description";
+
+        // Altera a descrição
         con.desc = desc;
+
+        // Prepara o objeto
         var send = {
+            type: 'notification',
             sender: con,
             message: msg
         }
         this.broadcast(send);
+
+        // Avisa que a mudaça foi feita
+        var message = {
+            type: 'system',
+            message: 'You changed your description',
+            recipient: con
+        }
+        this.private(message);
 
         // Retorna a mensagem para o servidor
         return msg;
@@ -170,54 +243,51 @@ class Users
     // Funcionalidade para ver a descrição de um user
     seeDesc(con, args)
     {
-        // Define o destinatario
-        var user = args[0];
-        var reci = con.nome;
+        // Seleciona o nome do destinatario
+        var name = args[0];
 
-        // Objeto para envio da descrição
-        var sysArray = null;
+        // Seleciona o destinatario
+        var user = this.selectUserByName(name);
 
-        // Procura entre os usuários pela descrição
-        this.cons.forEach(function(con){
-            if(con.nome == user){
-
-                // Salva a descrição do user
-                var desc = user+"`s description is: "+con.desc;
-                sysArray = {
-                    message: desc,
-                    recipient: reci
-                }
-
-                // Retorna se achar
-                return;
+        // Verifica se o user não existe
+        if(user === null){
+            var message = 'This user name is not on use';
+            var msg = {
+                type: 'system',
+                message: message,
+                recipient: con
             }
-        });
-
-        // Descrição não encontrada
-        if(sysArray === null){
-
-            // Prepara o objeto do systemAnswer
-            sysArray = {
-                message: 'User not found',
-                recipient: reci
-            }
-
-            // Mostra a mensagem de user não encontrado
-            this.systemAnswer(sysArray);
-
-            // Termina a ação sem mostrar ao histórico
+            this.private(msg);
             return;
         }
-        // Descrição encontrada
-        else{
 
-            // Mostra a descrição do user
-            this.systemAnswer(sysArray);
-
-            // Prepara e envia a mensagem para o servidor
-            var msg = reci+' saw '+user+' descriptions';
-            return msg;
+        // Verifica se o user tem descrição
+        if(user.desc === null){
+            var message = 'This user has no description';
+            var msg = {
+                type: 'system',
+                message: message,
+                recipient: con
+            }
+            this.private(msg);
         }
+
+        // Seleciona a descrição do user
+        var desc = user.name+"`s description is: "+user.desc;
+
+        // Prepara o objeto
+        var sysAnswer = {
+            type: 'system',
+            message: desc,
+            recipient: con
+        }
+
+        // Mostra a descrição do user
+        this.private(sysAnswer);
+
+        // Prepara e envia a mensagem para o servidor
+        var msg = con.name+' saw '+user.name+' descriptions';
+        return msg;
     }
 
     // Funcionalidade para enviar uma mensagem privada
@@ -229,18 +299,22 @@ class Users
         // Define o user destinatário
         var userReci = args[0];
 
+        // Seleciona o user pelo nome
+        var recipient = this.selectUserByName(userReci);
+
         // Prepara o objeto para o envio
         var privateArray = {
+            type: 'private',
             message: message,
-            sender: con.nome,
-            recipient: userReci
+            sender: con,
+            recipient: recipient
         }
 
         // Envia o objeto com a mensagem o destino e o remetente
         this.private(privateArray);
 
         // Retorna com a mensagem para o servidor
-        var msg = con.nome+" sent a private message to "+userReci+" saying: "+message;
+        var msg = con.name+" sent a private message to "+userReci+" saying: "+message;
         return msg;
     }
 
@@ -252,20 +326,415 @@ class Users
 
         // Percorre os users contidos na classe e adiciona na string
         this.cons.forEach(element => {
-            online += element.nome+"\n";
+            online += element.name+"\n";
         });
 
         // Prepara o objeto
         var SysArray = {
+            type: 'system',
             message: online,
-            recipient: con.nome
+            recipient: con
         }
 
         // Envia a mensagem pelo sistema
-        this.systemAnswer(SysArray);
+        this.private(SysArray);
 
         // Retorna para o servidor
-        return con.nome+" saw the list of users online.";
+        return con.name+" saw the list of users online.";
+    }
+
+    // Verifica se o grupo existe (null caso não exista)
+    verifyGroupExists(initialsGroup)
+    {
+        for(var value of this.groups)
+        {
+            if(value.initials === initialsGroup)
+            {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    // Funcionalidade de criação de grupo
+    createGroup(con, args)
+    {
+        // Define o nome do grupo
+        var name = args[0];
+
+        // Define a sigla do grupo
+        var initials = args[1];
+
+        // Verifica se a sigla já não está em uso
+        var initialUsing = this.verifyGroupExists(initials);
+
+        // Se estiver em uso retorna
+        if(initialUsing !== null){
+            var msg = {
+                type: 'system',
+                message: 'This initial is on use',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
+
+        // Cria um novo grupo
+        var group = new Group(con, name, initials);
+
+        // Avisa à você que o grupo foi criado
+        var message = {
+            type: 'system',
+            message: 'You created the group '+group.name+' '+group.initials,
+            recipient: con
+        }
+        this.private(message);
+
+        // Adiciona o grupo na lista de grupos
+        this.groups.push(group);
+
+        // Mostra uma mensagem de criação do grupo para todos
+        var message = con.name+' created a new Group: '+name+' '+initials;
+        var msg = {
+            type: 'notification',
+            sender: con,
+            message: message
+        }
+        this.broadcast(msg);
+
+        // Retorna para o servidor
+        return message;
+    }
+
+    // Funcionalidade de envio de mensagem para um grupo
+    msg(con, args)
+    {
+        // Seleciona a mensagem
+        var message = args.splice(1).join(' ');
+
+        // Seleciona o grupo
+        var initials = args[0];
+
+        // A chave do array de grupos
+        var group = this.verifyGroupExists(initials);
+
+        // Se o grupo não existir
+        if(group === null){
+
+            // Objeto da mensagem
+            var msg = {
+                type: 'system',
+                message: 'Group does not exists',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
+
+        // Objeto da mensagem
+        var msg = {
+            type: 'message',
+            message: message,
+            sender: con
+        }
+
+        // Envia a mensagem
+        group.broadcast(msg);
+
+        return con.name+' wrote into the group '+group.name+' '+group.initials+': '+message;
+    }
+
+    // Funcionalidade para adicionar participantes ao grupo
+    addMember(con, args)
+    {
+        // Sigla do grupo
+        var initial = args[0];
+
+        // Verifica se o grupo existe
+        var group = this.verifyGroupExists(initial);
+
+        // Se o grupo não existir
+        if(group === null){
+            var msg = {
+                type: 'system',
+                message: 'Group does not exists',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
+
+        // Verifica se o user não é admin
+        if(!group.verifyAdmin(con)){
+            var msg = {
+                type: 'system',
+                message: 'You are not the admin',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
+
+        // Nome do novo membro
+        var name = args[1];
+
+        // Seleciona o user
+        var user = this.selectUserByName(name);
+
+        // Se o user não existir
+        if(!this.userExists(user))
+        {
+            var msg = {
+                type: 'system',
+                message: 'This user does not exists',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
+
+        // Avisa o usuário que foi adicionado
+        var msg = {
+            type: 'system',
+            message: 'You just had been added to '+group.name+' '+group.initials+' by '+con.name,
+            recipient: user
+        }
+        this.private(msg);
+
+        // Adiciona o user
+        group.attachMember(user);
+
+        // Avisa à você que a alteração foi feita
+        var message = {
+            type: 'system',
+            message: 'You added '+user.name+' to the group '+group.name+' '+group.initials,
+            recipient: con
+        }
+        this.private(message);
+
+        // Retorna a mensagem para o histórico do server
+        return 'The user '+name+' had been add in the group '+group.name;
+    }
+
+    removeMember(con, args)
+    {
+        // Sigla do grupo
+        var initial = args[0];
+
+        // Verifica se o grupo existe
+        var group = this.verifyGroupExists(initial);
+
+        // Se o grupo não existir
+        if(group === null){
+            var msg = {
+                type: 'system',
+                message: 'Group does not exists',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
+
+        // Verifica se o user não é admin
+        if(!group.verifyAdmin(con)){
+            var msg = {
+                type: 'system',
+                message: 'You are not the admin',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
+
+        // Nome do membro a ser retirado
+        var name = args[1];
+
+        // Seleciona o user
+        var user = this.selectUserByName(name);
+
+        // Se o user não existir
+        if(!this.userExists(user))
+        {
+            var msg = {
+                type: 'system',
+                message: 'This user does not exists',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
+
+        // Se o user não estiver no grupo
+        if(!group.isMember(user))
+        {
+            var msg = {
+                type: 'system',
+                message: 'This user is not in that group',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
+
+        // Avisa o usuário que foi removido
+        var msg = {
+            type: 'system',
+            message: 'You just had been removed from '+group.name+' '+group.initials+' by '+con.name,
+            recipient: user
+        }
+        this.private(msg);
+
+        // Adiciona o user
+        group.detachMember(user);
+
+        // Avisa à você que a alteração foi feita
+        var message = {
+            type: 'system',
+            message: 'You removed '+user.name+' from the group '+group.name+' '+group.initials,
+            recipient: con
+        }
+        this.private(message);
+
+        // Retorna a mensagem para o histórico do server
+        return 'The user '+name+' had been removed from the group '+group.name;
+    }
+
+    groupName(con, args)
+    {
+        // Sigla do grupo
+        var initial = args[0];
+
+        // Verifica se o grupo existe
+        var group = this.verifyGroupExists(initial);
+
+        // Se o grupo não existir
+        if(group === null){
+            var msg = {
+                type: 'system',
+                message: 'Group does not exists',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
+
+        // Verifica se o user não é admin
+        if(!group.verifyAdmin(con)){
+            var msg = {
+                type: 'system',
+                message: 'You are not the admin',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
+
+        // Novo nome do grupo
+        var name = args[1];
+
+        // Avisa ao grupo a mudança de nome
+        var msg = {
+            type: 'notification',
+            message: 'The group name had been changed from '+group.name+' to '+name+' by '+con.name,
+            sender: con
+        }
+        group.broadcast(msg);
+
+        // Avisa à você que a alteração foi feita
+        var message = {
+            type: 'system',
+            message: 'You changed the group name from '+group.name+' to '+name,
+            recipient: con
+        }
+        this.private(message);
+
+        // Altera o nome
+        group.name = name;
+
+        return 'The group name had been changed from '+group.name+' to '+name+' by '+con.name;
+    }
+
+    setAdmin(con, args)
+    {
+        // Sigla do grupo
+        var initial = args[0];
+
+        // Verifica se o grupo existe
+        var group = this.verifyGroupExists(initial);
+
+        // Se o grupo não existir
+        if(group === null){
+            var msg = {
+                type: 'system',
+                message: 'Group does not exists',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
+
+        // Verifica se o user não é admin
+        if(!group.verifyAdmin(con)){
+            var msg = {
+                type: 'system',
+                message: 'You are not the admin',
+                recipient: con
+            }
+            this.private(msg);
+
+            // Encerra a funcionalidade
+            return;
+        }
+
+        // Sigla do grupo
+        var name = args[1];
+
+        // Seleciona user pelo nome
+        var user = this.selectUserByName(name);
+
+        // Adiciona o user como admin
+        group.attachAdmin(user);
+
+        // Avisa ao grupo o novo admin
+        var msg = {
+            type: 'notification',
+            message: user.name+' is now a admin of '+group.name+' added by '+con.name,
+            sender: con
+        }
+        group.broadcast(msg);
+
+        // Avisa que adicionou o admin
+        var message = {
+            type: 'system',
+            message: 'You made '+user.name+' a new admin of '+group.name,
+            recipient: con
+        }
+        this.private(message);
+
     }
 }
 module.exports = Users;
